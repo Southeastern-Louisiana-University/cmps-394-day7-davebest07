@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python API Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .status {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .status.loading {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .status.success {
+            background-color: #e8f5e9;
+            color: #388e3c;
+        }
+        
+        .status.error {
+            background-color: #ffebee;
+            color: #d32f2f;
+        }
+        
+        .messages-list {
+            list-style: none;
+        }
+        
+        .message-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background-color: #f5f5f5;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+            transition: transform 0.2s;
+        }
+        
+        .message-item:hover {
+            transform: translateX(5px);
+            background-color: #eeeeee;
+        }
+        
+        .message-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .message-content {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .refresh-button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 20px;
+            background-color: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .refresh-button:hover {
+            background-color: #5568d3;
+        }
+        
+        .refresh-button:active {
+            transform: scale(0.98);
+        }
+        
+        .empty {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📝 Python API Demo</h1>
+        <p class="subtitle">Messages from PostgreSQL Database</p>
+        
+        <div class="status loading" id="status">
+            Loading messages...
+        </div>
+        
+        <ul class="messages-list" id="messagesList">
+            <li class="empty">Loading...</li>
+        </ul>
+        
+        <button class="refresh-button" onclick="loadMessages()">🔄 Refresh Messages</button>
+    </div>
+    
+    <script>
+        async function loadMessages() {
+            const statusDiv = document.getElementById('status');
+            const messagesList = document.getElementById('messagesList');
+            
+            statusDiv.textContent = 'Loading messages...';
+            statusDiv.className = 'status loading';
+            
+            try {
+                const response = await fetch('/api/messages');
+                const result = await response.json();
+                
+                if (result.success && result.data && result.data.length > 0) {
+                    messagesList.innerHTML = result.data.map(msg => `
+                        <li class="message-item">
+                            <div class="message-title">${escapeHtml(msg.title)}</div>
+                            <div class="message-content">${escapeHtml(msg.content)}</div>
+                        </li>
+                    `).join('');
+                    
+                    statusDiv.textContent = `✓ Successfully loaded ${result.data.length} message(s)`;
+                    statusDiv.className = 'status success';
+                } else if (result.success && (!result.data || result.data.length === 0)) {
+                    messagesList.innerHTML = '<li class="empty">No messages found</li>';
+                    statusDiv.textContent = 'No messages available';
+                    statusDiv.className = 'status success';
+                } else {
+                    throw new Error(result.error || 'Unknown error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                messagesList.innerHTML = '<li class="empty">Error loading messages</li>';
+                statusDiv.textContent = `✗ Error: ${error.message}`;
+                statusDiv.className = 'status error';
+            }
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Load messages when page loads
+        window.addEventListener('load', loadMessages);
+    </script>
+</body>
+</html>

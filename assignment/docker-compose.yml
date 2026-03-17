@@ -1,0 +1,53 @@
+version: '3.8'
+
+networks:
+  app_network:
+    driver: bridge
+
+services:
+  db:
+    image: postgres:16
+    container_name: assignment_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: appdb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app_network
+
+  python_api:
+    build: ./api
+    container_name: assignment_python_api
+    ports:
+      - "5000:5000"
+    environment:
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: appdb
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app_network
+
+  ui:
+    build: ./ui
+    container_name: assignment_nginx_ui
+    ports:
+      - "80:80"
+    depends_on:
+      - python_api
+    networks:
+      - app_network
+
+volumes:
+  postgres_data:
